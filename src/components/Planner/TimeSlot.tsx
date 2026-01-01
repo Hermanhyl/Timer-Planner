@@ -39,8 +39,8 @@ export function TimeSlot({
     <div
       ref={setNodeRef}
       onClick={() => !startingActivity && !coveringActivity && onAddActivity(dayIndex, hour)}
-      className={`relative h-10 border-b border-r border-gray-700 transition-colors ${
-        isOver ? 'bg-blue-500/20' : 'hover:bg-gray-700/50'
+      className={`relative h-12 transition-colors ${
+        isOver ? 'bg-blue-500/30 ring-1 ring-inset ring-blue-500' : 'hover:bg-gray-700/30'
       } ${!startingActivity && !coveringActivity ? 'cursor-pointer' : ''}`}
     >
       {startingActivity && (
@@ -54,7 +54,7 @@ export function TimeSlot({
       )}
       {coveringActivity && (
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 opacity-90"
           style={{ backgroundColor: getCategoryById(coveringActivity.categoryId)?.color ?? '#6B7280' }}
         />
       )}

@@ -63,10 +63,10 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="h-screen flex flex-col bg-gray-900">
       {/* Navigation */}
-      <nav className="bg-gray-800 border-b border-gray-700">
-        <div className="max-w-6xl mx-auto px-4">
+      <nav className="flex-shrink-0 bg-gray-800 border-b border-gray-700">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="flex items-center justify-between h-14">
             <div className="flex items-center gap-1">
               <button
@@ -135,8 +135,10 @@ function App() {
       </nav>
 
       {/* Main content */}
-      <main className="max-w-6xl mx-auto">
-        {currentView === 'timer' ? <Timer /> : <Planner />}
+      <main className={`flex-1 overflow-hidden ${currentView === 'timer' ? 'overflow-y-auto' : ''}`}>
+        <div className={currentView === 'timer' ? 'max-w-6xl mx-auto' : 'h-full max-w-7xl mx-auto'}>
+          {currentView === 'timer' ? <Timer /> : <Planner />}
+        </div>
       </main>
     </div>
   );

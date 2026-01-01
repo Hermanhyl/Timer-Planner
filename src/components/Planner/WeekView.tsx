@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, pointerWithin } from '@dnd-kit/core';
 import type { Activity, Category } from '../../types';
-import { DAYS_OF_WEEK, HOURS } from '../../types';
+import { DAYS_OF_WEEK } from '../../types';
 import { TimeSlot } from './TimeSlot';
 import { ActivityModal } from './ActivityModal';
+
+// Working hours (6 AM to 11 PM) - more practical range
+const DISPLAY_HOURS = Array.from({ length: 18 }, (_, i) => i + 6);
 
 interface WeekViewProps {
   activities: Activity[];
@@ -30,8 +33,22 @@ export function WeekView({
 
   const [draggingActivity, setDraggingActivity] = useState<Activity | null>(null);
 
-  const formatHour = (hour: number): string => {
-    const period = hour >= 12 ? 'PM' : 'AM';
+  // Get current week dates
+  const weekDates = useMemo(() => {
+    const today = new Date();
+    const currentDay = today.getDay();
+    const sunday = new Date(today);
+    sunday.setDate(today.getDate() - currentDay);
+
+    return DAYS_OF_WEEK.map((_, index) => {
+      const date = new Date(sunday);
+      date.setDate(sunday.getDate() + index);
+      return date;
+    });
+  }, []);
+
+  const formatShortHour = (hour: number): string => {
+    const period = hour >= 12 ? 'p' : 'a';
     const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
     return `${displayHour}${period}`;
   };
@@ -91,6 +108,9 @@ export function WeekView({
     }
   };
 
+  const today = new Date();
+  const todayIndex = today.getDay();
+
   return (
     <DndContext
       collisionDetection={pointerWithin}
@@ -98,55 +118,93 @@ export function WeekView({
       onDragEnd={handleDragEnd}
     >
       <div className="overflow-x-auto">
-        <div className="min-w-[800px]">
-          {/* Header */}
-          <div className="grid grid-cols-8 border-b border-gray-700">
-            <div className="p-2 text-center text-gray-500 text-sm">Time</div>
-            {DAYS_OF_WEEK.map((day, index) => (
-              <div
-                key={day}
-                className="p-2 text-center text-white font-medium text-sm border-l border-gray-700"
-              >
-                <span className="hidden sm:inline">{day}</span>
-                <span className="sm:hidden">{day.slice(0, 3)}</span>
-                {index === new Date().getDay() && (
-                  <span className="ml-1 w-2 h-2 bg-blue-500 rounded-full inline-block" />
-                )}
+        <div className="min-w-[700px]">
+          {/* Header - Sticky */}
+          <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-600">
+            <div className="grid grid-cols-8">
+              {/* Time column header */}
+              <div className="p-2 flex items-center justify-center">
+                <span className="text-xs text-gray-500 uppercase tracking-wider">Time</span>
               </div>
-            ))}
+
+              {/* Day headers with dates */}
+              {DAYS_OF_WEEK.map((day, index) => {
+                const date = weekDates[index];
+                const isToday = index === todayIndex;
+
+                return (
+                  <div
+                    key={day}
+                    className={`p-2 text-center border-l border-gray-700 ${
+                      isToday ? 'bg-blue-500/10' : ''
+                    }`}
+                  >
+                    <div className={`text-xs uppercase tracking-wider ${
+                      isToday ? 'text-blue-400' : 'text-gray-500'
+                    }`}>
+                      <span className="hidden sm:inline">{day.slice(0, 3)}</span>
+                      <span className="sm:hidden">{day.slice(0, 1)}</span>
+                    </div>
+                    <div className={`text-lg font-semibold ${
+                      isToday ? 'text-blue-400' : 'text-white'
+                    }`}>
+                      {date.getDate()}
+                    </div>
+                    {isToday && (
+                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mx-auto mt-0.5" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Time grid */}
           <div className="grid grid-cols-8">
             {/* Time column */}
-            <div>
-              {HOURS.map((hour) => (
+            <div className="bg-gray-800/50">
+              {DISPLAY_HOURS.map((hour, index) => (
                 <div
                   key={hour}
-                  className="h-10 flex items-center justify-center text-xs text-gray-500 border-b border-gray-700"
+                  className={`h-12 flex items-start justify-end pr-2 pt-0.5 text-xs text-gray-500 ${
+                    index !== 0 ? 'border-t border-gray-700/50' : ''
+                  }`}
                 >
-                  {formatHour(hour)}
+                  {formatShortHour(hour)}
                 </div>
               ))}
             </div>
 
             {/* Day columns */}
-            {DAYS_OF_WEEK.map((_, dayIndex) => (
-              <div key={dayIndex} className="border-l border-gray-700">
-                {HOURS.map((hour) => (
-                  <TimeSlot
-                    key={`${dayIndex}-${hour}`}
-                    dayIndex={dayIndex}
-                    hour={hour}
-                    activities={getActivitiesForSlot(dayIndex, hour)}
-                    categories={categories}
-                    onAddActivity={handleAddActivity}
-                    onEditActivity={handleEditActivity}
-                    onDeleteActivity={onDeleteActivity}
-                  />
-                ))}
-              </div>
-            ))}
+            {DAYS_OF_WEEK.map((_, dayIndex) => {
+              const isToday = dayIndex === todayIndex;
+
+              return (
+                <div
+                  key={dayIndex}
+                  className={`border-l border-gray-700 ${
+                    isToday ? 'bg-blue-500/5' : ''
+                  }`}
+                >
+                  {DISPLAY_HOURS.map((hour, index) => (
+                    <div
+                      key={`${dayIndex}-${hour}`}
+                      className={index !== 0 ? 'border-t border-gray-700/50' : ''}
+                    >
+                      <TimeSlot
+                        dayIndex={dayIndex}
+                        hour={hour}
+                        activities={getActivitiesForSlot(dayIndex, hour)}
+                        categories={categories}
+                        onAddActivity={handleAddActivity}
+                        onEditActivity={handleEditActivity}
+                        onDeleteActivity={onDeleteActivity}
+                      />
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -155,12 +213,12 @@ export function WeekView({
       <DragOverlay>
         {draggingActivity && (
           <div
-            className="px-2 py-1 rounded-md text-white text-xs font-medium shadow-lg"
+            className="px-3 py-1.5 rounded-md text-white text-xs font-medium shadow-xl border border-white/20"
             style={{
               backgroundColor:
                 categories.find((c) => c.id === draggingActivity.categoryId)?.color ??
                 '#6B7280',
-              minWidth: '80px',
+              minWidth: '100px',
             }}
           >
             {draggingActivity.title}
