@@ -1,22 +1,23 @@
 import { useState, useMemo } from 'react';
 import type { Activity, Category } from '../../types';
 import { DAYS_OF_WEEK } from '../../types';
+import { formatDateString } from '../../hooks';
 import { ActivityModal } from './ActivityModal';
 
 interface MonthViewProps {
-  activities: Activity[];
   categories: Category[];
   onAddActivity: (activity: Omit<Activity, 'id'>) => void;
   onUpdateActivity: (id: string, updates: Partial<Omit<Activity, 'id'>>) => void;
   onDeleteActivity: (id: string) => void;
+  getActivitiesForDate: (date: string) => Activity[];
 }
 
 export function MonthView({
-  activities,
   categories,
   onAddActivity,
   onUpdateActivity,
   onDeleteActivity,
+  getActivitiesForDate,
 }: MonthViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [modalState, setModalState] = useState<{
@@ -60,22 +61,9 @@ export function MonthView({
     return { weeks, month, year };
   }, [currentDate]);
 
-  const getActivitiesForDate = (date: Date): Activity[] => {
-    const dayIndex = date.getDay();
-    // For monthly view, we need to match activities by the actual date
-    // Since activities use dayIndex (0-6), we need to check if the activity
-    // is for this specific week and day
-    const weekStart = new Date(date);
-    weekStart.setDate(date.getDate() - date.getDay());
-
-    return activities.filter((a) => {
-      // Check if this activity's dayIndex matches the date's day of week
-      if (a.dayIndex !== dayIndex) return false;
-
-      // For now, show weekly recurring activities on all matching days
-      // In a real app, you might want to add a date field to activities
-      return true;
-    });
+  const getActivitiesForCalendarDate = (date: Date): Activity[] => {
+    const dateString = formatDateString(date);
+    return getActivitiesForDate(dateString);
   };
 
   const handlePrevMonth = () => {
@@ -91,10 +79,11 @@ export function MonthView({
   };
 
   const handleDayClick = (date: Date) => {
+    const dateString = formatDateString(date);
     setModalState({
       isOpen: true,
       mode: 'create',
-      initialData: { dayIndex: date.getDay(), startHour: 9 },
+      initialData: { date: dateString, startHour: 9, recurring: 'none' },
       selectedDate: date,
     });
   };
@@ -176,7 +165,7 @@ export function MonthView({
         {/* Calendar weeks */}
         <div className="grid grid-cols-7 gap-1">
           {calendarData.weeks.flat().map((date, index) => {
-            const dayActivities = getActivitiesForDate(date);
+            const dayActivities = getActivitiesForCalendarDate(date);
             const isCurrentDay = isToday(date);
             const inCurrentMonth = isCurrentMonth(date);
 

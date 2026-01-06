@@ -27,13 +27,16 @@ export interface Category {
   color: string;
 }
 
+export type RecurringType = 'none' | 'daily' | 'weekly' | 'monthly';
+
 export interface Activity {
   id: string;
   title: string;
   categoryId: string;
-  dayIndex: number; // 0-6 (Sunday-Saturday)
+  date: string; // ISO date string (YYYY-MM-DD) for the specific date
   startHour: number; // 0-23
   duration: number; // in hours
+  recurring: RecurringType; // whether this activity repeats
 }
 
 export interface PlannerState {

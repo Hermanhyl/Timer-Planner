@@ -3,17 +3,17 @@ import type { Activity, Category } from '../../types';
 import { ActivityBlock } from './ActivityBlock';
 
 interface TimeSlotProps {
-  dayIndex: number;
+  date: string;
   hour: number;
   activities: Activity[];
   categories: Category[];
-  onAddActivity: (dayIndex: number, hour: number) => void;
+  onAddActivity: (date: string, hour: number) => void;
   onEditActivity: (activity: Activity) => void;
   onDeleteActivity: (id: string) => void;
 }
 
 export function TimeSlot({
-  dayIndex,
+  date,
   hour,
   activities,
   categories,
@@ -22,8 +22,8 @@ export function TimeSlot({
   onDeleteActivity,
 }: TimeSlotProps) {
   const { setNodeRef, isOver } = useDroppable({
-    id: `${dayIndex}-${hour}`,
-    data: { dayIndex, hour },
+    id: `${date}-${hour}`,
+    data: { date, hour },
   });
 
   const getCategoryById = (id: string) => categories.find((c) => c.id === id);
@@ -38,7 +38,7 @@ export function TimeSlot({
   return (
     <div
       ref={setNodeRef}
-      onClick={() => !startingActivity && !coveringActivity && onAddActivity(dayIndex, hour)}
+      onClick={() => !startingActivity && !coveringActivity && onAddActivity(date, hour)}
       className={`relative h-12 transition-colors ${
         isOver ? 'bg-blue-500/30 ring-1 ring-inset ring-blue-500' : 'hover:bg-gray-700/30'
       } ${!startingActivity && !coveringActivity ? 'cursor-pointer' : ''}`}

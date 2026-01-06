@@ -114,20 +114,20 @@ export function Planner() {
       <div className="flex-1 overflow-auto bg-gray-900">
         {currentView === 'week' ? (
           <WeekView
-            activities={planner.activities}
             categories={planner.categories}
             onAddActivity={planner.addActivity}
             onUpdateActivity={planner.updateActivity}
             onDeleteActivity={planner.deleteActivity}
             onMoveActivity={planner.moveActivity}
+            getActivitiesForDateAndHour={planner.getActivitiesForDateAndHour}
           />
         ) : (
           <MonthView
-            activities={planner.activities}
             categories={planner.categories}
             onAddActivity={planner.addActivity}
             onUpdateActivity={planner.updateActivity}
             onDeleteActivity={planner.deleteActivity}
+            getActivitiesForDate={planner.getActivitiesForDate}
           />
         )}
       </div>

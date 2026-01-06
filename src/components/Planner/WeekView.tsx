@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { DndContext, DragEndEvent, DragStartEvent, DragOverlay, pointerWithin } from '@dnd-kit/core';
 import type { Activity, Category } from '../../types';
 import { DAYS_OF_WEEK } from '../../types';
+import { formatDateString } from '../../hooks';
 import { TimeSlot } from './TimeSlot';
 import { ActivityModal } from './ActivityModal';
 
@@ -9,26 +10,27 @@ import { ActivityModal } from './ActivityModal';
 const DISPLAY_HOURS = Array.from({ length: 18 }, (_, i) => i + 6);
 
 interface WeekViewProps {
-  activities: Activity[];
   categories: Category[];
   onAddActivity: (activity: Omit<Activity, 'id'>) => void;
   onUpdateActivity: (id: string, updates: Partial<Omit<Activity, 'id'>>) => void;
   onDeleteActivity: (id: string) => void;
-  onMoveActivity: (id: string, dayIndex: number, startHour: number) => void;
+  onMoveActivity: (id: string, date: string, startHour: number) => void;
+  getActivitiesForDateAndHour: (date: string, hour: number) => Activity[];
 }
 
 export function WeekView({
-  activities,
   categories,
   onAddActivity,
   onUpdateActivity,
   onDeleteActivity,
   onMoveActivity,
+  getActivitiesForDateAndHour,
 }: WeekViewProps) {
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
     mode: 'create' | 'edit';
     initialData?: Partial<Activity>;
+    selectedDate?: string;
   }>({ isOpen: false, mode: 'create' });
 
   const [draggingActivity, setDraggingActivity] = useState<Activity | null>(null);
@@ -53,20 +55,12 @@ export function WeekView({
     return `${displayHour}${period}`;
   };
 
-  const getActivitiesForSlot = (dayIndex: number, hour: number): Activity[] => {
-    return activities.filter(
-      (a) =>
-        a.dayIndex === dayIndex &&
-        hour >= a.startHour &&
-        hour < a.startHour + a.duration
-    );
-  };
-
-  const handleAddActivity = (dayIndex: number, hour: number) => {
+  const handleAddActivity = (date: string, hour: number) => {
     setModalState({
       isOpen: true,
       mode: 'create',
-      initialData: { dayIndex, startHour: hour },
+      initialData: { date, startHour: hour, recurring: 'none' },
+      selectedDate: date,
     });
   };
 
@@ -101,10 +95,10 @@ export function WeekView({
     if (!over) return;
 
     const activityId = active.id as string;
-    const dropData = over.data.current as { dayIndex: number; hour: number } | undefined;
+    const dropData = over.data.current as { date: string; hour: number } | undefined;
 
     if (dropData) {
-      onMoveActivity(activityId, dropData.dayIndex, dropData.hour);
+      onMoveActivity(activityId, dropData.date, dropData.hour);
     }
   };
 
@@ -176,25 +170,26 @@ export function WeekView({
             </div>
 
             {/* Day columns */}
-            {DAYS_OF_WEEK.map((_, dayIndex) => {
+            {weekDates.map((date, dayIndex) => {
               const isToday = dayIndex === todayIndex;
+              const dateString = formatDateString(date);
 
               return (
                 <div
-                  key={dayIndex}
+                  key={dateString}
                   className={`border-l border-gray-700 ${
                     isToday ? 'bg-blue-500/5' : ''
                   }`}
                 >
                   {DISPLAY_HOURS.map((hour, index) => (
                     <div
-                      key={`${dayIndex}-${hour}`}
+                      key={`${dateString}-${hour}`}
                       className={index !== 0 ? 'border-t border-gray-700/50' : ''}
                     >
                       <TimeSlot
-                        dayIndex={dayIndex}
+                        date={dateString}
                         hour={hour}
-                        activities={getActivitiesForSlot(dayIndex, hour)}
+                        activities={getActivitiesForDateAndHour(dateString, hour)}
                         categories={categories}
                         onAddActivity={handleAddActivity}
                         onEditActivity={handleEditActivity}

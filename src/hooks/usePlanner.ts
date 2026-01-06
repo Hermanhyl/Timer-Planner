@@ -5,17 +5,50 @@ import { useLocalStorage } from './useLocalStorage';
 
 const generateId = () => Math.random().toString(36).substring(2, 11);
 
+// Helper to format date as YYYY-MM-DD
+export const formatDateString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Helper to check if an activity should appear on a given date
+const activityAppearsOnDate = (activity: Activity, targetDate: string): boolean => {
+  if (activity.recurring === 'none') {
+    return activity.date === targetDate;
+  }
+
+  const activityDate = new Date(activity.date);
+  const target = new Date(targetDate);
+
+  // Don't show recurring activities before their start date
+  if (target < activityDate) return false;
+
+  switch (activity.recurring) {
+    case 'daily':
+      return true;
+    case 'weekly':
+      return activityDate.getDay() === target.getDay();
+    case 'monthly':
+      return activityDate.getDate() === target.getDate();
+    default:
+      return false;
+  }
+};
+
 export interface UsePlannerReturn {
   activities: Activity[];
   categories: Category[];
   addActivity: (activity: Omit<Activity, 'id'>) => void;
   updateActivity: (id: string, updates: Partial<Omit<Activity, 'id'>>) => void;
   deleteActivity: (id: string) => void;
-  moveActivity: (id: string, dayIndex: number, startHour: number) => void;
+  moveActivity: (id: string, date: string, startHour: number) => void;
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (id: string, updates: Partial<Omit<Category, 'id'>>) => void;
   deleteCategory: (id: string) => void;
-  getActivitiesForSlot: (dayIndex: number, hour: number) => Activity[];
+  getActivitiesForDate: (date: string) => Activity[];
+  getActivitiesForDateAndHour: (date: string, hour: number) => Activity[];
   getCategoryById: (id: string) => Category | undefined;
   setPlannerState: (state: PlannerState) => void;
 }
@@ -49,11 +82,11 @@ export function usePlanner(): UsePlannerReturn {
     }));
   }, [setPlannerState]);
 
-  const moveActivity = useCallback((id: string, dayIndex: number, startHour: number) => {
+  const moveActivity = useCallback((id: string, date: string, startHour: number) => {
     setPlannerState((prev) => ({
       ...prev,
       activities: prev.activities.map((a) =>
-        a.id === id ? { ...a, dayIndex, startHour } : a
+        a.id === id ? { ...a, date, startHour } : a
       ),
     }));
   }, [setPlannerState]);
@@ -83,10 +116,14 @@ export function usePlanner(): UsePlannerReturn {
     }));
   }, [setPlannerState]);
 
-  const getActivitiesForSlot = useCallback((dayIndex: number, hour: number): Activity[] => {
+  const getActivitiesForDate = useCallback((date: string): Activity[] => {
+    return plannerState.activities.filter((a) => activityAppearsOnDate(a, date));
+  }, [plannerState.activities]);
+
+  const getActivitiesForDateAndHour = useCallback((date: string, hour: number): Activity[] => {
     return plannerState.activities.filter(
       (a) =>
-        a.dayIndex === dayIndex &&
+        activityAppearsOnDate(a, date) &&
         hour >= a.startHour &&
         hour < a.startHour + a.duration
     );
@@ -106,7 +143,8 @@ export function usePlanner(): UsePlannerReturn {
     addCategory,
     updateCategory,
     deleteCategory,
-    getActivitiesForSlot,
+    getActivitiesForDate,
+    getActivitiesForDateAndHour,
     getCategoryById,
     setPlannerState,
   };

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import type { Activity, Category } from '../../types';
+import type { Activity, Category, RecurringType } from '../../types';
 import { HOURS } from '../../types';
+import { formatDateString } from '../../hooks';
 
 interface ActivityModalProps {
   isOpen: boolean;
@@ -21,8 +22,10 @@ export function ActivityModal({
 }: ActivityModalProps) {
   const [title, setTitle] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [date, setDate] = useState('');
   const [startHour, setStartHour] = useState(9);
   const [duration, setDuration] = useState(1);
+  const [recurring, setRecurring] = useState<RecurringType>('none');
 
   // Validation states
   const [titleTouched, setTitleTouched] = useState(false);
@@ -31,6 +34,7 @@ export function ActivityModal({
   // Validation checks
   const isTitleValid = title.trim().length > 0;
   const isCategoryValid = categoryId.length > 0;
+  const isDateValid = date.length > 0;
 
   // Show error states
   const showTitleError = (titleTouched || submitAttempted) && !isTitleValid;
@@ -40,12 +44,16 @@ export function ActivityModal({
     if (initialData) {
       setTitle(initialData.title ?? '');
       setCategoryId(initialData.categoryId ?? categories[0]?.id ?? '');
+      setDate(initialData.date ?? formatDateString(new Date()));
       setStartHour(initialData.startHour ?? 9);
       setDuration(initialData.duration ?? 1);
+      setRecurring(initialData.recurring ?? 'none');
     } else {
       setTitle('');
       setCategoryId(categories[0]?.id ?? '');
+      setDate(formatDateString(new Date()));
       setDuration(1);
+      setRecurring('none');
     }
     // Reset validation states when modal opens/changes
     setTitleTouched(false);
@@ -57,14 +65,15 @@ export function ActivityModal({
     setSubmitAttempted(true);
     setTitleTouched(true);
 
-    if (!isTitleValid || !isCategoryValid) return;
+    if (!isTitleValid || !isCategoryValid || !isDateValid) return;
 
     const activityData = {
       title: title.trim(),
       categoryId,
-      dayIndex: initialData?.dayIndex ?? 0,
+      date,
       startHour,
       duration,
+      recurring,
     };
 
     if (mode === 'edit' && initialData?.id) {
@@ -169,6 +178,19 @@ export function ActivityModal({
             )}
           </div>
 
+          {/* Date */}
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">
+              Date <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+            />
+          </div>
+
           {/* Time Settings */}
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -200,6 +222,28 @@ export function ActivityModal({
                 ))}
               </select>
             </div>
+          </div>
+
+          {/* Recurring Option */}
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Repeat</label>
+            <select
+              value={recurring}
+              onChange={(e) => setRecurring(e.target.value as RecurringType)}
+              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:border-blue-500"
+            >
+              <option value="none">Does not repeat</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+            {recurring !== 'none' && (
+              <p className="text-xs text-gray-500 mt-1">
+                {recurring === 'daily' && 'Repeats every day'}
+                {recurring === 'weekly' && `Repeats every ${new Date(date).toLocaleDateString('en-US', { weekday: 'long' })}`}
+                {recurring === 'monthly' && `Repeats on day ${new Date(date).getDate()} of each month`}
+              </p>
+            )}
           </div>
 
           {/* Preview */}
