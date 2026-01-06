@@ -121,9 +121,9 @@ export function WeekView({
         <div className="min-w-[700px]">
           {/* Header - Sticky */}
           <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-600">
-            <div className="grid grid-cols-8">
+            <div className="grid grid-cols-[auto_repeat(7,1fr)]">
               {/* Time column header */}
-              <div className="p-2 flex items-center justify-center">
+              <div className="p-2 flex items-center justify-center w-12">
                 <span className="text-xs text-gray-500 uppercase tracking-wider">Time</span>
               </div>
 
@@ -160,9 +160,9 @@ export function WeekView({
           </div>
 
           {/* Time grid */}
-          <div className="grid grid-cols-8">
+          <div className="grid grid-cols-[auto_repeat(7,1fr)]">
             {/* Time column */}
-            <div className="bg-gray-800/50">
+            <div className="bg-gray-800/50 w-12">
               {DISPLAY_HOURS.map((hour, index) => (
                 <div
                   key={hour}
